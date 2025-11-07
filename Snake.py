@@ -1,3 +1,5 @@
+import curses
+
 class Snake : 
 
     def initialize(self, init_body, init_direction) :
@@ -18,13 +20,13 @@ class Snake :
         self.body = self.body[1:] + [new_head]
 
     def set_direction(self, direction) :
-        if direction == ord('w'):
+        if direction == ord('w') or direction == curses.KEY_UP:
             self.direction = 'UP'
-        elif direction == ord('a'):
+        elif direction == ord('a') or direction == curses.KEY_LEFT:
             self.direction = 'LEFT'
-        elif direction == ord('s'):
+        elif direction == ord('s') or direction == curses.KEY_DOWN:
             self.direction = 'DOWN'
-        elif direction == ord('d'):
+        elif direction == ord('d') or direction == curses.KEY_RIGHT:
             self.direction = 'RIGHT'
 
     def head(self) :

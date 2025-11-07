@@ -122,3 +122,8 @@ class Game :
         stdscr.nodelay(False)
         stdscr.getch()
         return
+    
+    def pause_game(self, stdscr):
+        stdscr.nodelay(False)
+        stdscr.getch()
+        stdscr.nodelay(True)

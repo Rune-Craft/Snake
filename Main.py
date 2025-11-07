@@ -3,6 +3,7 @@ import curses
 
 def main(stdscr) :
     curses.cbreak()
+    stdscr.keypad(True)
     stdscr.nodelay(True)
     stdscr.timeout(200)
     curses.start_color()
@@ -18,14 +19,22 @@ def main(stdscr) :
     while not quit:
         user_input = stdscr.getch()
 
-        if user_input in [ord('w'), ord('a'), ord('s'), ord('d')]:
+        if user_input in [ord('w'), ord('a'), ord('s'), ord('d'), curses.KEY_UP, curses.KEY_DOWN, curses.KEY_LEFT, curses.KEY_RIGHT]:
             snakeGame.snake.set_direction(user_input)
         
 
-        elif user_input == ord('Q'):
+        elif user_input == ord('q'):
             snakeGame.display_quit_message(stdscr)
             quit = True
-    
+
+        elif user_input == ord('p'):
+            snakeGame.pause_game(stdscr)
+            stdscr.addstr(10, 0, "Game Paused. Press 'p' to resume.")
+            stdscr.refresh()
+            while True:
+                if stdscr.getch() == ord('p'):
+                    break
+
         if not quit:
             snakeGame.snake.take_step()
 
