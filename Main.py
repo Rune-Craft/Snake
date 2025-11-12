@@ -27,7 +27,7 @@ def main(stdscr) :
             snakeGame.display_quit_message(stdscr)
             snakeGame.save_game(stdscr)
             snakeGame.display_leaderboard(stdscr)
-            quit = True
+            quit = snakeGame.continue_or_quit_game(stdscr)
 
         elif user_input == ord('p'):
             snakeGame.pause_game(stdscr)
@@ -44,12 +44,12 @@ def main(stdscr) :
             if snakeGame.check_self_collision(stdscr):
                 snakeGame.save_game(stdscr)
                 snakeGame.display_leaderboard(stdscr)
-                quit = True
+                quit = snakeGame.continue_or_quit_game(stdscr)
 
             if snakeGame.check_wall_collision(stdscr):
                 snakeGame.save_game(stdscr)
                 snakeGame.display_leaderboard(stdscr)
-                quit = True
+                quit = snakeGame.continue_or_quit_game(stdscr)
 
             snakeGame.check_if_apple_eaten()
             snakeGame.render(stdscr)

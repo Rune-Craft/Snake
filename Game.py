@@ -11,7 +11,7 @@ class Game :
         self.height = height
         self.width = width
         self.snake = Snake.Snake()
-        self.snake.initialize([(0, 0), (0, 1), (2, 0), (3, 0)], "RIGHT")
+        self.snake.initialize([(2, 3), (3, 3), (4, 3), (5, 3)], "RIGHT")
         self.apples = []
         self.applesToMake = 1
         self.score = 0
@@ -147,50 +147,51 @@ class Game :
         stdscr.nodelay(True)
 
     def save_game(self, stdscr):
-        stdscr.clear()
-        stdscr.addstr(0, 0, "Enter your initials (3 letters): ")
-        stdscr.addstr(1, 0, "_ _ _")
-        stdscr.move(1, 0)
-        curses.curs_set(2)
-        stdscr.nodelay(False)
-        stdscr.refresh()
-
-        initials = ""
-        i = 0
-        while i < 3:
-            char = stdscr.getch()
-            if 65 <= char <= 90 or 97 <= char <= 122:
-                letter = chr(char).upper()
-                initials += letter
-                stdscr.addstr(1, i * 2, letter)
-                stdscr.refresh()
-                i += 1
-                if i < 3:
-                    stdscr.move(1, i * 2)
-
         directory = "C:\\Dev Git\\snake\\"
         filename = "leaderboard.json"
         filepath = os.path.join(directory, filename)
 
-        curses.curs_set(0)
-        stdscr.nodelay(True)  # Reset nodelay back to True
-        initials = initials.upper()
-        game_data = {
-            "score": f"{self.score}",
-            "initials": f"{initials}"
-        }
-
         if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
             with open(filepath, 'r') as file:
-                existing_data = json.load(file)
-                # existing_data.sort(key=lambda x: int(x['score']), reverse=True)
-                sorted_data = sorted(existing_data, key=lambda x: int(x['score']), reverse=True)
-                sorted_data.append(game_data)
-                sorted_data = sorted(sorted_data, key=lambda x: int(x['score']), reverse=True)
-                top_five_scores = sorted_data[:5]
-                existing_data = top_five_scores
-                with open(filepath, 'w') as file:
-                    file.write(json.dumps(existing_data, indent=4))
+                saved_data = json.load(file)
+                top_five_scores = sorted(saved_data, key=lambda x: int(x['score']), reverse=True)[:5]
+                if len(top_five_scores) < 5 or self.score > int(top_five_scores[-1]['score']):
+                    stdscr.clear()
+                    stdscr.addstr(0, 0, "Congratulations! You've placed on the Leaderboard!")
+                    stdscr.addstr(1, 0, f"You scored: {self.score}!")
+                    stdscr.addstr(2, 0, "Enter your initials (3 letters): ")
+                    stdscr.addstr(3, 0, "_ _ _")
+                    stdscr.move(3, 0)
+                    curses.curs_set(2)
+                    stdscr.nodelay(False)
+                    stdscr.refresh()
+
+                    initials = ""
+                    i = 0
+                    while i < 3:
+                        char = stdscr.getch()
+                        if 65 <= char <= 90 or 97 <= char <= 122:
+                            letter = chr(char).upper()
+                            initials += letter
+                            stdscr.addstr(3, i * 2, letter)
+                            stdscr.refresh()
+                            i += 1
+                            if i < 3:
+                                stdscr.move(3, i * 2)
+
+                    curses.curs_set(0)
+                    stdscr.nodelay(True)  # Reset nodelay back to True
+                    initials = initials.upper()
+                    game_data = {
+                        "score": f"{self.score}",
+                        "initials": f"{initials}"
+                    }
+
+                    top_five_scores.append(game_data)
+                    top_five_scores = sorted(top_five_scores, key=lambda x: int(x['score']), reverse=True)[:5]
+                    with open(filepath, 'w') as file:
+                        file.write(json.dumps(top_five_scores, indent=4))
+
         else:
             with open(filepath, 'w') as file:
                 file.write(json.dumps([game_data], indent=4))
@@ -210,14 +211,20 @@ class Game :
                 leaderboard.sort(key=lambda x: int(x['score']), reverse=True)
                 for i, entry in enumerate(leaderboard):
                     stdscr.addstr(i + 2, 0, f"{entry['initials']}: {entry['score']}")
-        
-        stdscr.addstr(12, 0, "Press any key to exit...")
-        stdscr.refresh()
-        
+
+    def continue_or_quit_game(self, stdscr):
+        stdscr.addstr(12, 0, "Press R to restart or Q to quit...")
         stdscr.timeout(-1)
         stdscr.nodelay(False)
-        curses.flushinp()
-        stdscr.getch()
+        key = stdscr.getch()
+        if key == ord('r'):
+            self.score = 0
+            self.snake.initialize([(2, 3), (3, 3), (4, 3), (5, 3)], "RIGHT")
+            stdscr.timeout(200)
+            stdscr.nodelay(True)
+            return False
+        elif key == ord('q'):
+            stdscr.timeout(200)
+            stdscr.nodelay(True)
+            return True
         
-        stdscr.timeout(200)
-        stdscr.nodelay(True)
