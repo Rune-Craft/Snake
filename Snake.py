@@ -20,13 +20,15 @@ class Snake :
         self.body = self.body[1:] + [new_head]
 
     def set_direction(self, direction) :
-        if direction == ord('w') or direction == curses.KEY_UP:
+        currentDirection = self.direction
+
+        if (direction == ord('w') or direction == curses.KEY_UP) and currentDirection != 'DOWN':
             self.direction = 'UP'
-        elif direction == ord('a') or direction == curses.KEY_LEFT:
+        elif (direction == ord('a') or direction == curses.KEY_LEFT) and currentDirection != 'RIGHT':
             self.direction = 'LEFT'
-        elif direction == ord('s') or direction == curses.KEY_DOWN:
+        elif (direction == ord('s') or direction == curses.KEY_DOWN) and currentDirection != 'UP':
             self.direction = 'DOWN'
-        elif direction == ord('d') or direction == curses.KEY_RIGHT:
+        elif (direction == ord('d') or direction == curses.KEY_RIGHT) and currentDirection != 'LEFT':
             self.direction = 'RIGHT'
 
     def head(self) :
