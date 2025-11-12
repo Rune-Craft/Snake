@@ -25,10 +25,13 @@ def main(stdscr) :
 
         elif user_input == ord('q'):
             snakeGame.display_quit_message(stdscr)
+            snakeGame.save_game(stdscr)
+            snakeGame.display_leaderboard(stdscr)
             quit = True
 
         elif user_input == ord('p'):
             snakeGame.pause_game(stdscr)
+            snakeGame.display_leaderboard(stdscr)
             stdscr.addstr(10, 0, "Game Paused. Press 'p' to resume.")
             stdscr.refresh()
             while True:
@@ -39,9 +42,13 @@ def main(stdscr) :
             snakeGame.snake.take_step()
 
             if snakeGame.check_self_collision(stdscr):
+                snakeGame.save_game(stdscr)
+                snakeGame.display_leaderboard(stdscr)
                 quit = True
 
             if snakeGame.check_wall_collision(stdscr):
+                snakeGame.save_game(stdscr)
+                snakeGame.display_leaderboard(stdscr)
                 quit = True
 
             snakeGame.check_if_apple_eaten()

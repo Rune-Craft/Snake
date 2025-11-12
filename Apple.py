@@ -10,6 +10,8 @@ class Apple:
             'y': self.y
         }
         return position
-    
-    def checkIsEaten(self):
+
+    def checkIsEaten(self, game):
+        if (self.x, self.y) == game.snake.head():
+            self.isEaten = True
         return self.isEaten
