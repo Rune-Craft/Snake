@@ -196,6 +196,38 @@ class Game :
                         file.write(json.dumps(top_five_scores, indent=4))
 
         else:
+            # First time saving - no leaderboard exists yet
+            stdscr.clear()
+            stdscr.addstr(0, 0, "Congratulations! You've placed on the Leaderboard!")
+            stdscr.addstr(1, 0, f"You scored: {self.score}!")
+            stdscr.addstr(2, 0, "Enter your initials (3 letters): ")
+            stdscr.addstr(3, 0, "_ _ _")
+            stdscr.move(3, 0)
+            curses.curs_set(2)
+            stdscr.nodelay(False)
+            stdscr.refresh()
+
+            initials = ""
+            i = 0
+            while i < 3:
+                char = stdscr.getch()
+                if 65 <= char <= 90 or 97 <= char <= 122:
+                    letter = chr(char).upper()
+                    initials += letter
+                    stdscr.addstr(3, i * 2, letter)
+                    stdscr.refresh()
+                    i += 1
+                    if i < 3:
+                        stdscr.move(3, i * 2)
+
+            curses.curs_set(0)
+            stdscr.nodelay(True)  # Reset nodelay back to True
+            initials = initials.upper()
+            game_data = {
+                "score": f"{self.score}",
+                "initials": f"{initials}"
+            }
+
             with open(filepath, 'w') as file:
                 file.write(json.dumps([game_data], indent=4))
 
