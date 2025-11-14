@@ -4,8 +4,12 @@ import Apple
 import random
 import curses
 import json
+import Settings
 
 class Game :
+
+    def __init__(self):
+        self.settings = Settings.Settings.load()
 
     def initialize(self, height, width) : 
         self.height = height
@@ -40,11 +44,11 @@ class Game :
                 matrix[self.apples[-1].y][self.apples[-1].x] = "A"
 
         border_width = self.width * 2 - 1
-        stdscr.addstr("+" + "-" * border_width + "+")
+        stdscr.addstr("+" + "-" * border_width + "+", curses.color_pair(3))
 
         row_num = 1
         for row in matrix:
-            stdscr.addstr(row_num, 0, "|") # + ' '.join(cell if cell else ' ' for cell in row) + "|")
+            stdscr.addstr(row_num, 0, "|", curses.color_pair(3)) # + ' '.join(cell if cell else ' ' for cell in row) + "|")
             col_pos = 1
             for cell in row:
                 if cell in ["X", "O"]:
@@ -54,10 +58,10 @@ class Game :
                 else: 
                     stdscr.addstr(row_num, col_pos, cell if cell else ' ')
                 col_pos += 2
-            stdscr.addstr(row_num, col_pos, "|")
+            stdscr.addstr(row_num, col_pos, "|", curses.color_pair(3))
             row_num += 1
 
-        stdscr.addstr(row_num, 0, "+" + "-" * border_width + "+")
+        stdscr.addstr(row_num, 0, "+" + "-" * border_width + "+", curses.color_pair(3))
         stdscr.addstr(row_num + 1, 0, f"Score: {self.score}")
         stdscr.refresh()
 
@@ -74,7 +78,7 @@ class Game :
                     row.append(" ")
             matrix.append(row)
         return matrix
-    
+
     def check_wall_collision(self, stdscr) :
         head_x, head_y = self.snake.head()
         if head_x < 0 or head_x >= self.width or head_y < 0 or head_y >= self.height:
@@ -102,7 +106,7 @@ class Game :
             return True  # Collision with self
         
         return False  # No collision
-    
+
     def check_if_apple_eaten(self) :
         if self.apples:
             for apple in self.apples:
@@ -129,7 +133,6 @@ class Game :
 
             if (random_apple_x, random_apple_y) not in self.snake.body and (random_apple_x, random_apple_y) != self.snake.head():
                 return Apple.Apple(random_apple_x, random_apple_y)
-        
 
     def display_quit_message(self, stdscr) :
         stdscr.clear()
@@ -140,7 +143,7 @@ class Game :
         stdscr.nodelay(False)
         stdscr.getch()
         return
-    
+
     def pause_game(self, stdscr):
         stdscr.nodelay(False)
         stdscr.getch()
@@ -213,18 +216,304 @@ class Game :
                     stdscr.addstr(i + 2, 0, f"{entry['initials']}: {entry['score']}")
 
     def continue_or_quit_game(self, stdscr):
-        stdscr.addstr(12, 0, "Press R to restart or Q to quit...")
-        stdscr.timeout(-1)
-        stdscr.nodelay(False)
-        key = stdscr.getch()
-        if key == ord('r'):
-            self.score = 0
-            self.snake.initialize([(2, 3), (3, 3), (4, 3), (5, 3)], "RIGHT")
-            stdscr.timeout(200)
-            stdscr.nodelay(True)
-            return False
-        elif key == ord('q'):
-            stdscr.timeout(200)
-            stdscr.nodelay(True)
-            return True
-        
+        options = [
+            "Main Menu",
+            "Restart",
+            "Quit"
+        ]
+        current_selection = 0
+
+        while True:
+            stdscr.addstr(12, 0, "Game Over! What would you like to do?")
+            
+            for idx, option in enumerate(options):
+                if idx == current_selection:
+                    stdscr.addstr(14 + idx, 0, f"> {option}", curses.A_REVERSE)
+                else:
+                    stdscr.addstr(14 + idx, 0, f"  {option}")
+            
+            stdscr.timeout(-1)
+            stdscr.nodelay(False)
+            key = stdscr.getch()
+            
+            if key == curses.KEY_UP:
+                current_selection = (current_selection - 1) % len(options)
+            elif key == curses.KEY_DOWN:
+                current_selection = (current_selection + 1) % len(options)
+            elif key == ord('\n'):
+                if current_selection == 0:  # Main Menu
+                    stdscr.timeout(self.settings.game_speed)
+                    stdscr.nodelay(True)
+                    return "menu"
+                elif current_selection == 1:  # Restart
+                    self.score = 0
+                    self.snake.initialize([(2, 3), (3, 3), (4, 3), (5, 3)], "RIGHT")
+                    stdscr.timeout(self.settings.game_speed)
+                    stdscr.nodelay(True)
+                    return False
+                elif current_selection == 2:  # Quit
+                    stdscr.timeout(self.settings.game_speed)
+                    stdscr.nodelay(True)
+                    return True
+
+    def display_menu(self, stdscr):
+        while True:
+            stdscr.clear()
+            stdscr.addstr(0, 0, "Snake Game")
+            stdscr.addstr(4, 0, "(Enter) New Game")
+            stdscr.addstr(5, 0, "(S) Settings")
+            stdscr.timeout(-1)
+            stdscr.nodelay(False)
+            key = stdscr.getch() 
+            if key == ord('\n'):
+                self.settings = Settings.Settings.load()
+                return False
+            elif key == ord('s'):
+                self.display_settings(stdscr, self.settings)
+
+    def display_settings(self, stdscr, settings):
+        options = [
+            "Snake Color",
+            "Apple Color",
+            "Border Color",
+            "Board Width",
+            "Board Height",
+            "Game Speed",
+            "Back to Main Menu"
+        ]
+        current_selection = 0
+
+        while True:
+            stdscr.clear()
+            stdscr.addstr(0, 0, "====== SETTINGS ======")
+
+            for idx, option in enumerate(options):
+                if idx == current_selection:
+                    stdscr.addstr(idx + 2, 0, f"> {option}", curses.A_REVERSE)
+                else:
+                    stdscr.addstr(idx + 2, 0, f"  {option}")
+            
+            key = stdscr.getch()
+
+            if key == curses.KEY_UP:
+                current_selection = (current_selection - 1) % len(options)
+            if key == curses.KEY_DOWN:
+                current_selection = (current_selection + 1) % len(options)
+            elif key == ord('\n'):
+                if current_selection == 0:
+                    self.select_snake_color(stdscr, settings)
+                elif current_selection == 1:
+                    self.select_apple_color(stdscr, settings)
+                elif current_selection == 2:
+                    self.select_border_color(stdscr, settings)
+                elif current_selection == 3:
+                    self.select_border_width(stdscr, settings)
+                elif current_selection == 4:
+                    self.select_border_height(stdscr, settings)
+                elif current_selection == 5:
+                    self.select_game_speed(stdscr, settings)
+                elif current_selection == 6:
+                    break
+
+    def select_snake_color(self, stdscr, settings): 
+        color_options = [
+            ("Green", curses.COLOR_GREEN),
+            ("Blue", curses.COLOR_BLUE),
+            ("Yellow", curses.COLOR_YELLOW),
+            ("Magenta", curses.COLOR_MAGENTA),
+            ("Cyan", curses.COLOR_CYAN),
+            ("White", curses.COLOR_WHITE)
+        ]
+
+        current = 0
+        while True:
+            stdscr.clear()
+            stdscr.addstr(0, 0, "Select Snake Color:")
+
+            for idx, (name, color) in enumerate(color_options):
+                if idx == current:
+                    stdscr.addstr(idx + 2, 0, f"> {name}", curses.A_REVERSE)
+                else:
+                    stdscr.addstr(idx + 2, 0, f"  {name}")
+            
+            key = stdscr.getch()
+            if key == curses.KEY_UP:
+                current = (current - 1) % len(color_options)
+            elif key == curses.KEY_DOWN:
+                current = (current + 1) % len(color_options)
+            elif key == ord('\n'):
+                self.settings.snake_color = color_options[current][1]
+                self.settings.save()
+                curses.init_pair(1, self.settings.snake_color, curses.COLOR_BLACK)
+                break
+            elif key == ord('q'):
+                break
+
+    def select_apple_color(self, stdscr, settings):
+        color_options = [
+            ("Green", curses.COLOR_GREEN),
+            ("Blue", curses.COLOR_BLUE),
+            ("Yellow", curses.COLOR_YELLOW),
+            ("Magenta", curses.COLOR_MAGENTA),
+            ("Cyan", curses.COLOR_CYAN),
+            ("White", curses.COLOR_WHITE)
+        ]
+
+        current = 0
+        while True:
+            stdscr.clear()
+            stdscr.addstr(0, 0, "Select Apple Color:")
+
+            for idx, (name, color) in enumerate(color_options):
+                if idx == current:
+                    stdscr.addstr(idx + 2, 0, f"> {name}", curses.A_REVERSE)
+                else:
+                    stdscr.addstr(idx + 2, 0, f"  {name}")
+            
+            key = stdscr.getch()
+            if key == curses.KEY_UP:
+                current = (current - 1) % len(color_options)
+            elif key == curses.KEY_DOWN:
+                current = (current + 1) % len(color_options)
+            elif key == ord('\n'):
+                self.settings.apple_color = color_options[current][1]
+                self.settings.save()
+                curses.init_pair(2, self.settings.apple_color, curses.COLOR_BLACK)
+                break
+            elif key == ord('q'):
+                break
+
+    def select_border_color(self, stdscr, settings):
+        color_options = [
+            ("Green", curses.COLOR_GREEN),
+            ("Blue", curses.COLOR_BLUE),
+            ("Yellow", curses.COLOR_YELLOW),
+            ("Magenta", curses.COLOR_MAGENTA),
+            ("Cyan", curses.COLOR_CYAN),
+            ("White", curses.COLOR_WHITE)
+        ]
+
+        current = 0
+        while True:
+            stdscr.clear()
+            stdscr.addstr(0, 0, "Select Border Color:")
+
+            for idx, (name, color) in enumerate(color_options):
+                if idx == current:
+                    stdscr.addstr(idx + 2, 0, f"> {name}", curses.A_REVERSE)
+                else:
+                    stdscr.addstr(idx + 2, 0, f"  {name}")
+            
+            key = stdscr.getch()
+            if key == curses.KEY_UP:
+                current = (current - 1) % len(color_options)
+            elif key == curses.KEY_DOWN:
+                current = (current + 1) % len(color_options)
+            elif key == ord('\n'):
+                self.settings.border_color = color_options[current][1]
+                self.settings.save()
+                curses.init_pair(3, self.settings.border_color, curses.COLOR_BLACK)
+                break
+            elif key == ord('q'):
+                break
+
+    def select_border_width(self, stdscr, settings):
+        size_options = [
+            10,
+            20,
+            30,
+            40,
+            50,
+        ]
+
+        current = 0
+        while True:
+            stdscr.clear()
+            stdscr.addstr(0, 0, "Select Border Width:")
+
+            for idx, size in enumerate(size_options):
+                if idx == current:
+                    stdscr.addstr(idx + 2, 0, f"> {size}", curses.A_REVERSE)
+                else:
+                    stdscr.addstr(idx + 2, 0, f"  {size}")
+            
+            key = stdscr.getch()
+            if key == curses.KEY_UP:
+                current = (current - 1) % len(size_options)
+            elif key == curses.KEY_DOWN:
+                current = (current + 1) % len(size_options)
+            elif key == ord('\n'):
+                self.settings.board_width = size_options[current]
+                self.settings.save()
+                self.width = self.settings.board_width
+                break
+            elif key == ord('q'):
+                break
+
+    def select_border_height(self, stdscr, settings):
+        size_options = [
+            10,
+            20,
+            30,
+            40,
+            50,
+        ]
+
+        current = 0
+        while True:
+            stdscr.clear()
+            stdscr.addstr(0, 0, "Select Border Height:")
+
+            for idx, size in enumerate(size_options):
+                if idx == current:
+                    stdscr.addstr(idx + 2, 0, f"> {size}", curses.A_REVERSE)
+                else:
+                    stdscr.addstr(idx + 2, 0, f"  {size}")
+            
+            key = stdscr.getch()
+            if key == curses.KEY_UP:
+                current = (current - 1) % len(size_options)
+            elif key == curses.KEY_DOWN:
+                current = (current + 1) % len(size_options)
+            elif key == ord('\n'):
+                self.settings.board_height = size_options[current]
+                self.settings.save()
+                self.height = self.settings.board_height
+                break
+            elif key == ord('q'):
+                break
+
+    def select_game_speed(self, stdscr, settings):
+        speed_options = [
+            50,
+            75,
+            100,
+            150,
+            200,
+            250
+        ]
+
+        current = 0
+        while True:
+            stdscr.clear()
+            stdscr.addstr(0, 0, "Select Game Speed:")
+
+            for idx, speed in enumerate(speed_options):
+                if idx == current:
+                    stdscr.addstr(idx + 2, 0, f"> {speed}", curses.A_REVERSE)
+                else:
+                    stdscr.addstr(idx + 2, 0, f"  {speed}")
+            
+            key = stdscr.getch()
+            if key == curses.KEY_UP:
+                current = (current - 1) % len(speed_options)
+            elif key == curses.KEY_DOWN:
+                current = (current + 1) % len(speed_options)
+            elif key == ord('\n'):
+                self.settings.game_speed = speed_options[current]
+                self.settings.save()
+                stdscr.timeout(self.settings.game_speed)
+                break
+            elif key == ord('q'):
+                break
+

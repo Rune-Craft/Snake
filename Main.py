@@ -1,20 +1,26 @@
 import Game
 import curses
+import Settings
 
 def main(stdscr) :
     curses.cbreak()
-    stdscr.keypad(True)
-    stdscr.nodelay(True)
-    stdscr.timeout(200)
     curses.start_color()
 
-    curses.init_pair(1, curses.COLOR_GREEN, curses.COLOR_BLACK)
-    curses.init_pair(2, curses.COLOR_RED, curses.COLOR_BLACK)
+    settings = Settings.Settings.load()
+    curses.init_pair(1, settings.snake_color, curses.COLOR_BLACK)
+    curses.init_pair(2, settings.apple_color, curses.COLOR_BLACK)
+    curses.init_pair(3, settings.border_color, curses.COLOR_BLACK)
+    curses.init_pair(4, curses.COLOR_WHITE, curses.COLOR_BLACK)
 
     snakeGame = Game.Game()
-    snakeGame.initialize(10, 20)
+    snakeGame.initialize(settings.board_height, settings.board_width)
     snakeGame.render(stdscr)
-    quit = False
+    quit = snakeGame.display_menu(stdscr)
+    settings = Settings.Settings.load()
+
+    stdscr.keypad(True)
+    stdscr.nodelay(True)
+    stdscr.timeout(settings.game_speed)
     
     while not quit:
         user_input = stdscr.getch()
@@ -27,7 +33,14 @@ def main(stdscr) :
             snakeGame.display_quit_message(stdscr)
             snakeGame.save_game(stdscr)
             snakeGame.display_leaderboard(stdscr)
-            quit = snakeGame.continue_or_quit_game(stdscr)
+            result = snakeGame.continue_or_quit_game(stdscr)
+            if result == "menu":
+                quit = snakeGame.display_menu(stdscr)
+                settings = Settings.Settings.load()
+                snakeGame.initialize(settings.board_height, settings.board_width)
+                stdscr.timeout(settings.game_speed)
+            else:
+                quit = result
 
         elif user_input == ord('p'):
             snakeGame.pause_game(stdscr)
@@ -44,12 +57,26 @@ def main(stdscr) :
             if snakeGame.check_self_collision(stdscr):
                 snakeGame.save_game(stdscr)
                 snakeGame.display_leaderboard(stdscr)
-                quit = snakeGame.continue_or_quit_game(stdscr)
+                result = snakeGame.continue_or_quit_game(stdscr)
+                if result == "menu":
+                    quit = snakeGame.display_menu(stdscr)
+                    settings = Settings.Settings.load()
+                    snakeGame.initialize(settings.board_height, settings.board_width)
+                    stdscr.timeout(settings.game_speed)
+                else:
+                    quit = result
 
             if snakeGame.check_wall_collision(stdscr):
                 snakeGame.save_game(stdscr)
                 snakeGame.display_leaderboard(stdscr)
-                quit = snakeGame.continue_or_quit_game(stdscr)
+                result = snakeGame.continue_or_quit_game(stdscr)
+                if result == "menu":
+                    quit = snakeGame.display_menu(stdscr)
+                    settings = Settings.Settings.load()
+                    snakeGame.initialize(settings.board_height, settings.board_width)
+                    stdscr.timeout(settings.game_speed)
+                else:
+                    quit = result
 
             snakeGame.check_if_apple_eaten()
             snakeGame.render(stdscr)
