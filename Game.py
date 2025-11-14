@@ -150,12 +150,12 @@ class Game :
         stdscr.nodelay(True)
 
     def save_game(self, stdscr):
-        directory = "C:\\Dev Git\\snake\\"
-        filename = "leaderboard.json"
-        filepath = os.path.join(directory, filename)
+        # Get the directory where this script is located
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        filename = os.path.join(script_dir, "leaderboard.json")
 
-        if os.path.exists(filepath) and os.path.getsize(filepath) > 0:
-            with open(filepath, 'r') as file:
+        if os.path.exists(filename) and os.path.getsize(filename) > 0:
+            with open(filename, 'r') as file:
                 saved_data = json.load(file)
                 top_five_scores = sorted(saved_data, key=lambda x: int(x['score']), reverse=True)[:5]
                 if len(top_five_scores) < 5 or self.score > int(top_five_scores[-1]['score']):
@@ -192,7 +192,7 @@ class Game :
 
                     top_five_scores.append(game_data)
                     top_five_scores = sorted(top_five_scores, key=lambda x: int(x['score']), reverse=True)[:5]
-                    with open(filepath, 'w') as file:
+                    with open(filename, 'w') as file:
                         file.write(json.dumps(top_five_scores, indent=4))
 
         else:
@@ -228,7 +228,7 @@ class Game :
                 "initials": f"{initials}"
             }
 
-            with open(filepath, 'w') as file:
+            with open(filename, 'w') as file:
                 file.write(json.dumps([game_data], indent=4))
 
     def display_leaderboard(self, stdscr):
@@ -236,12 +236,12 @@ class Game :
         stdscr.addstr(0, 0, "LeaderBoard")
         stdscr.refresh()
 
-        directory = "C:\\Dev Git\\snake\\"
-        filename = "leaderboard.json"
-        filepath = os.path.join(directory, filename)
+        # Get the directory where this script is located
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        filename = os.path.join(script_dir, "leaderboard.json")
 
-        if os.path.exists(filepath):
-            with open(filepath, 'r') as file:
+        if os.path.exists(filename):
+            with open(filename, 'r') as file:
                 leaderboard = json.load(file)
                 leaderboard.sort(key=lambda x: int(x['score']), reverse=True)
                 for i, entry in enumerate(leaderboard):
