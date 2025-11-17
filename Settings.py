@@ -1,6 +1,8 @@
 import curses
 import json
 import os
+import sqlite3
+import socket
 
 
 class Settings:
@@ -14,27 +16,59 @@ class Settings:
         self.game_speed = 200
 
     def save(self):
-        data = {
-            'snake_color': self.snake_color,
-            'apple_color': self.apple_color,
-            'border_color': self.border_color,
-            'board_width': self.board_width,
-            'board_height': self.board_height,
-            'game_speed': self.game_speed
-        }
-        with open('settings.json', 'w') as file:
-            json.dump(data, file, indent=4)
+        conn = sqlite3.connect('snake_game.db')
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+                        CREATE TABLE IF NOT EXISTS Settings (
+                            ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_machine TEXT NOT NULL,
+                            snake_color INTEGER NOT NULL,
+                            apple_color INTEGER NOT NULL,
+                            border_color INTEGER NOT NULL,
+                            board_width INTEGER NOT NULL,
+                            board_height INTEGER NOT NULL,
+                            game_speed INTEGER NOT NULL
+                        )
+                        ''')
+        
+        machine_name = socket.gethostname()
+        
+        cursor.execute("INSERT INTO Settings ( " +
+                        " user_machine, snake_color, apple_color, border_color, board_width, board_height, game_speed " +
+                        " ) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                        (machine_name, self.snake_color, self.apple_color, self.border_color, self.board_width, self.board_height, self.game_speed))
+        conn.commit()
+        cursor.close()
+        conn.close()
 
     @classmethod
     def load(cls):
         settings = cls()
-        if os.path.exists('settings.json'):
-            with open('settings.json', 'r') as file:
-                data = json.load(file)
-                settings.snake_color = data.get('snake_color', settings.snake_color)
-                settings.apple_color = data.get('apple_color', settings.apple_color)
-                settings.border_color = data.get('border_color', settings.border_color)
-                settings.board_width = data.get('board_width', settings.board_width)
-                settings.board_height = data.get('board_height', settings.board_height)
-                settings.game_speed = data.get('game_speed', settings.game_speed)
+        conn = sqlite3.connect('snake_game.db')
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute('''
+                CREATE TABLE IF NOT EXISTS Settings (
+                    ID INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_machine TEXT NOT NULL,
+                    snake_color INTEGER NOT NULL,
+                    apple_color INTEGER NOT NULL,
+                    border_color INTEGER NOT NULL,
+                    board_width INTEGER NOT NULL,
+                    board_height INTEGER NOT NULL,
+                    game_speed INTEGER NOT NULL
+                )
+                ''')
+        
+        saved_settings = cursor.execute("SELECT * FROM Settings WHERE user_machine = ?", (socket.gethostname(),)).fetchone()
+        
+        if saved_settings:    
+            settings.snake_color = saved_settings['snake_color']
+            settings.apple_color = saved_settings['apple_color']
+            settings.border_color = saved_settings['border_color']
+            settings.board_width = saved_settings['board_width']
+            settings.board_height = saved_settings['board_height']
+            settings.game_speed = saved_settings['game_speed']
         return settings

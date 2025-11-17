@@ -1,11 +1,9 @@
-import os
 import Snake
 import Apple
 import random
 import curses
-import json
 import Settings
-import sqlite3
+from Firebase_config import db
 
 class Game :
 
@@ -151,22 +149,6 @@ class Game :
         stdscr.nodelay(True)
 
     def save_game(self, stdscr):
-        # Get the directory where this script is located
-        conn = sqlite3.connect('snake_game.db')
-        cursor = conn.cursor()
-
-        cursor.execute('''
-                       CREATE TABLE IF NOT EXISTS Leaderboard (
-                           id INTEGER PRIMARY KEY AUTOINCREMENT,
-                           initials TEXT NOT NULL,
-                           score INTEGER NOT NULL
-                        )
-                       ''')
-
-        leaderboard_data = cursor.execute(
-            "SELECT * FROM Leaderboard ORDER BY score DESC LIMIT 5"
-        ).fetchall()
-        
         stdscr.clear()
         stdscr.addstr(0, 0, "Congratulations! You've placed on the Leaderboard!")
         stdscr.addstr(1, 0, f"You scored: {self.score}!")
@@ -194,27 +176,21 @@ class Game :
         stdscr.nodelay(True)  # Reset nodelay back to True
         initials = initials.upper()
 
-        cursor.execute("INSERT INTO Leaderboard (initials, score) VALUES (?, ?)", (initials, self.score))
-        conn.commit()
-        cursor.close()
-
-        
+        db.collection('Leaderboard').add({
+            'initials': initials,
+            'score': self.score
+        })      
 
     def display_leaderboard(self, stdscr):
         stdscr.clear()
         stdscr.addstr(0, 0, "LeaderBoard")
         stdscr.refresh()
 
-        # Get the directory where this script is located
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        filename = os.path.join(script_dir, "leaderboard.json")
-
-        if os.path.exists(filename):
-            with open(filename, 'r') as file:
-                leaderboard = json.load(file)
-                leaderboard.sort(key=lambda x: int(x['score']), reverse=True)
-                for i, entry in enumerate(leaderboard):
-                    stdscr.addstr(i + 2, 0, f"{entry['initials']}: {entry['score']}")
+        query = db.collection('Leaderboard').order_by('score', direction='DESCENDING').limit(5)
+        leaderboard_data = query.stream()
+        for i, entry in enumerate(leaderboard_data):
+            data = entry.to_dict()
+            stdscr.addstr(i + 2, 0, f"{data['initials']}: {data['score']}")
 
     def continue_or_quit_game(self, stdscr):
         options = [
