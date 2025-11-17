@@ -65,6 +65,8 @@ venv.bak/
 .DS_Store
 Thumbs.db
 
-# Game data
-leaderboard.json
-settings.json
+# Firebase credentials
+snake-game-15694-firebase-adminsdk-fbsvc-1e3fe47bc4.json
+
+# sqlite DB
+snake_game.db
