@@ -5,6 +5,7 @@ import random
 import curses
 import json
 import Settings
+import sqlite3
 
 class Game :
 
@@ -151,85 +152,53 @@ class Game :
 
     def save_game(self, stdscr):
         # Get the directory where this script is located
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        filename = os.path.join(script_dir, "leaderboard.json")
+        conn = sqlite3.connect('snake_game.db')
+        cursor = conn.cursor()
 
-        if os.path.exists(filename) and os.path.getsize(filename) > 0:
-            with open(filename, 'r') as file:
-                saved_data = json.load(file)
-                top_five_scores = sorted(saved_data, key=lambda x: int(x['score']), reverse=True)[:5]
-                if len(top_five_scores) < 5 or self.score > int(top_five_scores[-1]['score']):
-                    stdscr.clear()
-                    stdscr.addstr(0, 0, "Congratulations! You've placed on the Leaderboard!")
-                    stdscr.addstr(1, 0, f"You scored: {self.score}!")
-                    stdscr.addstr(2, 0, "Enter your initials (3 letters): ")
-                    stdscr.addstr(3, 0, "_ _ _")
-                    stdscr.move(3, 0)
-                    curses.curs_set(2)
-                    stdscr.nodelay(False)
-                    stdscr.refresh()
+        cursor.execute('''
+                       CREATE TABLE IF NOT EXISTS Leaderboard (
+                           id INTEGER PRIMARY KEY AUTOINCREMENT,
+                           initials TEXT NOT NULL,
+                           score INTEGER NOT NULL
+                        )
+                       ''')
 
-                    initials = ""
-                    i = 0
-                    while i < 3:
-                        char = stdscr.getch()
-                        if 65 <= char <= 90 or 97 <= char <= 122:
-                            letter = chr(char).upper()
-                            initials += letter
-                            stdscr.addstr(3, i * 2, letter)
-                            stdscr.refresh()
-                            i += 1
-                            if i < 3:
-                                stdscr.move(3, i * 2)
+        leaderboard_data = cursor.execute(
+            "SELECT * FROM Leaderboard ORDER BY score DESC LIMIT 5"
+        ).fetchall()
+        
+        stdscr.clear()
+        stdscr.addstr(0, 0, "Congratulations! You've placed on the Leaderboard!")
+        stdscr.addstr(1, 0, f"You scored: {self.score}!")
+        stdscr.addstr(2, 0, "Enter your initials (3 letters): ")
+        stdscr.addstr(3, 0, "_ _ _")
+        stdscr.move(3, 0)
+        curses.curs_set(2)
+        stdscr.nodelay(False)
+        stdscr.refresh()
 
-                    curses.curs_set(0)
-                    stdscr.nodelay(True)  # Reset nodelay back to True
-                    initials = initials.upper()
-                    game_data = {
-                        "score": f"{self.score}",
-                        "initials": f"{initials}"
-                    }
+        initials = ""
+        i = 0
+        while i < 3:
+            char = stdscr.getch()
+            if 65 <= char <= 90 or 97 <= char <= 122:
+                letter = chr(char).upper()
+                initials += letter
+                stdscr.addstr(3, i * 2, letter)
+                stdscr.refresh()
+                i += 1
+                if i < 3:
+                    stdscr.move(3, i * 2)
 
-                    top_five_scores.append(game_data)
-                    top_five_scores = sorted(top_five_scores, key=lambda x: int(x['score']), reverse=True)[:5]
-                    with open(filename, 'w') as file:
-                        file.write(json.dumps(top_five_scores, indent=4))
+        curses.curs_set(0)
+        stdscr.nodelay(True)  # Reset nodelay back to True
+        initials = initials.upper()
 
-        else:
-            # First time saving - no leaderboard exists yet
-            stdscr.clear()
-            stdscr.addstr(0, 0, "Congratulations! You've placed on the Leaderboard!")
-            stdscr.addstr(1, 0, f"You scored: {self.score}!")
-            stdscr.addstr(2, 0, "Enter your initials (3 letters): ")
-            stdscr.addstr(3, 0, "_ _ _")
-            stdscr.move(3, 0)
-            curses.curs_set(2)
-            stdscr.nodelay(False)
-            stdscr.refresh()
+        cursor.execute("INSERT INTO Leaderboard (initials, score) VALUES (?, ?)", (initials, self.score))
+        conn.commit()
+        cursor.close()
 
-            initials = ""
-            i = 0
-            while i < 3:
-                char = stdscr.getch()
-                if 65 <= char <= 90 or 97 <= char <= 122:
-                    letter = chr(char).upper()
-                    initials += letter
-                    stdscr.addstr(3, i * 2, letter)
-                    stdscr.refresh()
-                    i += 1
-                    if i < 3:
-                        stdscr.move(3, i * 2)
-
-            curses.curs_set(0)
-            stdscr.nodelay(True)  # Reset nodelay back to True
-            initials = initials.upper()
-            game_data = {
-                "score": f"{self.score}",
-                "initials": f"{initials}"
-            }
-
-            with open(filename, 'w') as file:
-                file.write(json.dumps([game_data], indent=4))
+        
 
     def display_leaderboard(self, stdscr):
         stdscr.clear()
