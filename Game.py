@@ -3,7 +3,9 @@ import Apple
 import random
 import curses
 import Settings
-from Firebase_config import db
+from Firebase_config import db, USE_ADMIN_SDK, FIREBASE_PROJECT_ID
+import requests
+import json
 
 class Game :
 
@@ -176,21 +178,64 @@ class Game :
         stdscr.nodelay(True)  # Reset nodelay back to True
         initials = initials.upper()
 
-        db.collection('Leaderboard').add({
-            'initials': initials,
-            'score': self.score
-        })      
+        # Save to Firebase
+        if USE_ADMIN_SDK:
+            # Use admin SDK (when credentials available)
+            db.collection('Leaderboard').add({
+                'initials': initials,
+                'score': self.score
+            })
+        else:
+            # Use REST API (for users without credentials)
+            url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/Leaderboard"
+            data = {
+                "fields": {
+                    "initials": {"stringValue": initials},
+                    "score": {"integerValue": str(self.score)}
+                }
+            }
+            try:
+                requests.post(url, json=data)
+            except Exception as e:
+                stdscr.addstr(5, 0, f"Error saving score: {e}")
+                stdscr.refresh()
+                curses.napms(2000)
 
     def display_leaderboard(self, stdscr):
         stdscr.clear()
         stdscr.addstr(0, 0, "LeaderBoard")
         stdscr.refresh()
 
-        query = db.collection('Leaderboard').order_by('score', direction='DESCENDING').limit(5)
-        leaderboard_data = query.stream()
-        for i, entry in enumerate(leaderboard_data):
-            data = entry.to_dict()
-            stdscr.addstr(i + 2, 0, f"{data['initials']}: {data['score']}")
+        if USE_ADMIN_SDK:
+            # Use admin SDK
+            query = db.collection('Leaderboard').order_by('score', direction='DESCENDING').limit(5)
+            leaderboard_data = query.stream()
+            for i, entry in enumerate(leaderboard_data):
+                data = entry.to_dict()
+                stdscr.addstr(i + 2, 0, f"{data['initials']}: {data['score']}")
+        else:
+            # Use REST API
+            try:
+                url = f"https://firestore.googleapis.com/v1/projects/{FIREBASE_PROJECT_ID}/databases/(default)/documents/Leaderboard"
+                response = requests.get(url)
+                if response.status_code == 200:
+                    docs = response.json().get('documents', [])
+                    # Parse and sort scores
+                    scores = []
+                    for doc in docs:
+                        fields = doc.get('fields', {})
+                        initials = fields.get('initials', {}).get('stringValue', 'N/A')
+                        score = int(fields.get('score', {}).get('integerValue', 0))
+                        scores.append({'initials': initials, 'score': score})
+                    
+                    # Sort by score descending and take top 5
+                    scores.sort(key=lambda x: x['score'], reverse=True)
+                    for i, entry in enumerate(scores[:5]):
+                        stdscr.addstr(i + 2, 0, f"{entry['initials']}: {entry['score']}")
+                else:
+                    stdscr.addstr(2, 0, "Could not load leaderboard")
+            except Exception as e:
+                stdscr.addstr(2, 0, f"Error loading leaderboard: {e}")
 
     def continue_or_quit_game(self, stdscr):
         options = [

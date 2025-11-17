@@ -24,7 +24,11 @@ cd Snake
 
 2. Install dependencies:
 ```bash
-pip install firebase-admin
+pip install -r requirements.txt
+```
+   Or install manually:
+```bash
+pip install firebase-admin requests
 # On Windows only:
 pip install windows-curses
 ```
